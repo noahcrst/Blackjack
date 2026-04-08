@@ -2,10 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 
-# ==========================================
-# PARTIE BACKEND & LOGIQUE (ANIL & OUALID)
-# ==========================================
-
 class Carte:
     def __init__(self, valeur, couleur):
         self.valeur = valeur
@@ -45,10 +41,6 @@ class Main:
             total -= 10
             nb_as -= 1
         return total
-
-# ==========================================
-# PARTIE INTERFACE GRAPHIQUE (NOAH & ABDERRAMAN)
-# ==========================================
 
 class BlackjackGame:
     def __init__(self, root):
