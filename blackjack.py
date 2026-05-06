@@ -2,161 +2,266 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 
-class Carte:
-    def __init__(self, valeur, couleur):
-        self.valeur = valeur
-        self.couleur = couleur
+# ==========================================================
+# PROJET INFORMATIQUE : BLACKJACK
+# EQUIPE : Anil, Noah et Oualid
+# ROLES : 
+# - Anil & Noah : Logique du jeu, calculs, règles spéciales (Surrender)
+# - Oualid : Interface graphique, Canvas et système de mise
+# ==========================================================
 
-    def get_points(self):
-        if self.valeur in ['Valet', 'Dame', 'Roi']:
-            return 10
-        elif self.valeur == 'As':
-            return 11 # Géré dynamiquement dans la main
+# --- VARIABLES GLOBALES ---
+# (Initialisées par l'équipe)
+cartes_valeurs = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'V', 'D', 'R', 'A']
+cartes_couleurs = ['♥', '♦', '♣', '♠']
+
+paquet = []
+main_joueur = []
+main_croupier = []
+
+solde = 1000
+mise_actuelle = 0
+partie_en_cours = False
+
+# --- FONCTIONS LOGIQUES (Développées par Anil et Noah) ---
+
+def creer_paquet():
+    """Génère et mélange un nouveau paquet de 52 cartes"""
+    global paquet
+    paquet = []
+    for couleur in cartes_couleurs:
+        for valeur in cartes_valeurs:
+            paquet.append((valeur, couleur))
+    random.shuffle(paquet)
+    print("Debug: Paquet mélangé par Anil et Noah")
+
+def valeur_carte(carte):
+    """Détermine la valeur numérique d'une carte"""
+    valeur = carte[0]
+    if valeur in ['V', 'D', 'R']:
+        return 10
+    elif valeur == 'A':
+        return 11
+    else:
+        return int(valeur)
+
+def calculer_score(main):
+    """Calcule le total d'une main avec la gestion de l'As"""
+    score = 0
+    nombre_as = 0
+    for carte in main:
+        score = score + valeur_carte(carte)
+        if carte[0] == 'A':
+            nombre_as = nombre_as + 1
+            
+    while score > 21 and nombre_as > 0:
+        score = score - 10
+        nombre_as = nombre_as - 1
+    return score
+
+# --- FONCTIONS GRAPHIQUES (Développées par Oualid, avec l'aide de Noah) ---
+
+def dessiner_carte(x, y, carte, cachee=False):
+    """Crée le visuel d'une carte sur le tapis (Travail de Oualid)"""
+    tapis.create_rectangle(x, y, x + 60, y + 90, fill="white", outline="black", width=2)
+    
+    if cachee == True:
+        # Dos de la carte dessiné par Oualid
+        tapis.create_rectangle(x + 5, y + 5, x + 55, y + 85, fill="blue", outline="white")
+    else:
+        valeur = carte[0]
+        couleur = carte[1]
+        couleur_texte = "red" if couleur in ['♥', '♦'] else "black"
+        
+        tapis.create_text(x + 15, y + 20, text=valeur, font=("Arial", 14, "bold"), fill=couleur_texte)
+        tapis.create_text(x + 30, y + 50, text=couleur, font=("Arial", 24), fill=couleur_texte)
+
+def mettre_a_jour_affichage(cacher_croupier=True):
+    """Gère l'actualisation du Canvas (Collaboration Oualid et Anil)"""
+    label_argent.config(text="Banque: " + str(solde) + " €   |   Mise: " + str(mise_actuelle) + " €")
+    tapis.delete("all")
+    
+    texte_croupier = "CROUPIER"
+    texte_joueur = "JOUEUR"
+    
+    if partie_en_cours:
+        score_j = calculer_score(main_joueur)
+        texte_joueur = "JOUEUR (Score : " + str(score_j) + ")"
+        
+        if cacher_croupier == False:
+            score_c = calculer_score(main_croupier)
+            texte_croupier = "CROUPIER (Score : " + str(score_c) + ")"
+            
+    tapis.create_text(300, 30, text=texte_croupier, fill="white", font=("Arial", 14, "bold"))
+    tapis.create_text(300, 200, text=texte_joueur, fill="white", font=("Arial", 14, "bold"))
+    
+    if partie_en_cours:
+        # Affichage des cartes (Oualid)
+        x_depart_c = 300 - (len(main_croupier) * 35)
+        for index in range(len(main_croupier)):
+            carte = main_croupier[index]
+            est_cachee = (index == 1) and cacher_croupier 
+            dessiner_carte(x_depart_c + (index * 70), 50, carte, est_cachee)
+            
+        x_depart_j = 300 - (len(main_joueur) * 35)
+        for index in range(len(main_joueur)):
+            carte = main_joueur[index]
+            dessiner_carte(x_depart_j + (index * 70), 230, carte, cachee=False)
+
+    fenetre.update()
+
+# --- ACTIONS DU JEU (Collaboration de toute l'équipe) ---
+
+def miser(montant):
+    """Gestion des mises (Codé par Oualid)"""
+    global solde, mise_actuelle
+    if partie_en_cours == False:
+        if solde >= montant:
+            solde = solde - montant
+            mise_actuelle = mise_actuelle + montant
+            mettre_a_jour_affichage()
         else:
-            return int(self.valeur)
+            messagebox.showinfo("Attention", "Solde insuffisant !")
 
-class Sabot:
-    def __init__(self):
-        couleurs = ['Cœur', 'Carreau', 'Trèfle', 'Pique']
-        valeurs = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Valet', 'Dame', 'Roi', 'As']
-        self.cartes = [Carte(v, c) for c in couleurs for v in valeurs]
-        random.shuffle(self.cartes)
+def effacer_mise():
+    global solde, mise_actuelle
+    if partie_en_cours == False:
+        solde = solde + mise_actuelle
+        mise_actuelle = 0
+        mettre_a_jour_affichage()
 
-    def tirer(self):
-        return self.cartes.pop() if self.cartes else None
-
-class Main:
-    def __init__(self):
-        self.cartes = []
-
-    def ajouter_carte(self, carte):
-        self.cartes.append(carte)
-
-    def valeur_totale(self):
-        total = sum(carte.get_points() for carte in self.cartes)
-        nb_as = sum(1 for carte in self.cartes if carte.valeur == 'As')
+def distribuer():
+    """Début de manche (Codé par Noah)"""
+    global partie_en_cours
+    if mise_actuelle == 0:
+        messagebox.showinfo("Erreur", "Placez une mise !")
+        return
         
-        # Ajustement des As si on dépasse 21 (11 devient 1)
-        while total > 21 and nb_as > 0:
-            total -= 10
-            nb_as -= 1
-        return total
+    creer_paquet()
+    partie_en_cours = True
+    main_joueur.clear()
+    main_croupier.clear()
+    
+    main_joueur.append(paquet.pop())
+    main_croupier.append(paquet.pop())
+    main_joueur.append(paquet.pop())
+    main_croupier.append(paquet.pop())
+    
+    # Activation des boutons de jeu
+    bouton_tirer.config(state="normal")
+    bouton_rester.config(state="normal")
+    bouton_abandonner.config(state="normal") # On peut abandonner au début
+    bouton_distribuer.config(state="disabled")
+    
+    mettre_a_jour_affichage()
+    
+    if calculer_score(main_joueur) == 21:
+        fin_de_partie("Blackjack ! Bravo !", 2.5)
 
-class BlackjackGame:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Blackjack - Évaluation Intermédiaire")
-        self.root.geometry("800x600")
-        self.root.configure(bg="#2E8B57") # Vert tapis de casino
+def abandonner():
+    """Règle Bonus : Le joueur abandonne et perd la moitié de sa mise (Anil)"""
+    global solde, mise_actuelle, partie_en_cours
+    
+    moitie = int(mise_actuelle / 2)
+    solde = solde + moitie # On rend la moitié au joueur
+    
+    mettre_a_jour_affichage(cacher_croupier=False)
+    messagebox.showinfo("Résultat", "Vous avez abandonné. Vous récupérez la moitié de votre mise.")
+    
+    mise_actuelle = 0
+    partie_en_cours = False
+    
+    bouton_tirer.config(state="disabled")
+    bouton_rester.config(state="disabled")
+    bouton_abandonner.config(state="disabled")
+    bouton_distribuer.config(state="normal")
+    
+    mettre_a_jour_affichage()
 
-        self.sabot = None
-        self.main_joueur = None
-        self.main_croupier = None
+def tirer():
+    """Le joueur prend une carte (Codé par Anil)"""
+    # Si on tire une carte, on n'a plus le droit d'abandonner
+    bouton_abandonner.config(state="disabled") 
+    
+    main_joueur.append(paquet.pop())
+    mettre_a_jour_affichage()
+    
+    if calculer_score(main_joueur) > 21:
+        fin_de_partie("Bust ! Vous avez dépassé 21.", 0)
 
-        # --- Éléments de l'interface ---
-        self.info_label = tk.Label(root, text="Bienvenue au Blackjack !", font=("Helvetica", 16), bg="#2E8B57", fg="white")
-        self.info_label.pack(pady=10)
-
-        self.canvas_croupier = tk.Canvas(root, width=600, height=150, bg="#2E8B57", highlightthickness=0)
-        self.canvas_croupier.pack(pady=10)
+def rester():
+    """Tour du croupier (Codé par Anil et Noah)"""
+    bouton_abandonner.config(state="disabled") # Sécurité
+    
+    while calculer_score(main_croupier) < 17:
+        main_croupier.append(paquet.pop())
+        mettre_a_jour_affichage(cacher_croupier=False)
         
-        self.canvas_joueur = tk.Canvas(root, width=600, height=150, bg="#2E8B57", highlightthickness=0)
-        self.canvas_joueur.pack(pady=10)
+    score_j = calculer_score(main_joueur)
+    score_c = calculer_score(main_croupier)
+    
+    if score_c > 21:
+        fin_de_partie("Le croupier explose ! Gagné.", 2)
+    elif score_j > score_c:
+        fin_de_partie("Meilleur score ! Gagné.", 2)
+    elif score_j < score_c:
+        fin_de_partie("La banque gagne.", 0)
+    else:
+        fin_de_partie("Égalité !", 1)
 
-        # Boutons
-        frame_boutons = tk.Frame(root, bg="#2E8B57")
-        frame_boutons.pack(pady=20)
+def fin_de_partie(message, multiplicateur):
+    """Clôture de la manche (Codé par Noah)"""
+    global solde, mise_actuelle, partie_en_cours
+    
+    mettre_a_jour_affichage(cacher_croupier=False)
+    messagebox.showinfo("Résultat", message)
+    
+    solde = solde + int(mise_actuelle * multiplicateur)
+    mise_actuelle = 0
+    partie_en_cours = False
+    
+    bouton_tirer.config(state="disabled")
+    bouton_rester.config(state="disabled")
+    bouton_abandonner.config(state="disabled")
+    bouton_distribuer.config(state="normal")
+    
+    mettre_a_jour_affichage()
 
-        self.btn_tirer = tk.Button(frame_boutons, text="Carte ! (Hit)", command=self.joueur_tire, font=("Helvetica", 12), state=tk.DISABLED)
-        self.btn_tirer.grid(row=0, column=0, padx=10)
+# --- INTERFACE (Mise en place par Oualid) ---
 
-        self.btn_rester = tk.Button(frame_boutons, text="Je reste (Stand)", command=self.joueur_reste, font=("Helvetica", 12), state=tk.DISABLED)
-        self.btn_rester.grid(row=0, column=1, padx=10)
+fenetre = tk.Tk()
+fenetre.title("Projet Blackjack - Anil / Noah / Oualid")
+fenetre.geometry("650x550")
+fenetre.configure(bg="#006400")
 
-        self.btn_nouvelle = tk.Button(frame_boutons, text="Nouvelle Partie", command=self.nouvelle_partie, font=("Helvetica", 12))
-        self.btn_nouvelle.grid(row=0, column=2, padx=10)
+label_argent = tk.Label(fenetre, text="", font=("Arial", 14, "bold"), bg="#006400", fg="gold")
+label_argent.pack(pady=10)
 
-    def dessiner_carte(self, canvas, carte, x, y, cachee=False):
-        # Dessine un rectangle simple pour représenter la carte
-        canvas.create_rectangle(x, y, x+80, y+120, fill="white" if not cachee else "blue", outline="black", width=2)
-        if not cachee:
-            couleur_texte = "red" if carte.couleur in ['Cœur', 'Carreau'] else "black"
-            canvas.create_text(x+40, y+60, text=f"{carte.valeur}\nde\n{carte.couleur}", fill=couleur_texte, font=("Helvetica", 10, "bold"), justify=tk.CENTER)
+tapis = tk.Canvas(fenetre, width=600, height=350, bg="#004d00", highlightthickness=2, highlightbackground="gold")
+tapis.pack()
 
-    def maj_affichage(self, fin_partie=False):
-        self.canvas_croupier.delete("all")
-        self.canvas_joueur.delete("all")
+cadre_mises = tk.Frame(fenetre, bg="#006400")
+cadre_mises.pack(pady=10)
 
-        # Affichage Croupier (Une carte face visible, une face cachée sauf si fin de partie)
-        for i, carte in enumerate(self.main_croupier.cartes):
-            cachee = (i == 1 and not fin_partie)
-            self.dessiner_carte(self.canvas_croupier, carte, 20 + i*90, 15, cachee)
-        
-        # Affichage Joueur (Deux cartes visibles dès le début)
-        for i, carte in enumerate(self.main_joueur.cartes):
-            self.dessiner_carte(self.canvas_joueur, carte, 20 + i*90, 15)
+tk.Button(cadre_mises, text="Miser 10 €", command=lambda: miser(10)).grid(row=0, column=0, padx=5)
+tk.Button(cadre_mises, text="Miser 50 €", command=lambda: miser(50)).grid(row=0, column=1, padx=5)
+tk.Button(cadre_mises, text="Effacer", command=effacer_mise).grid(row=0, column=2, padx=5)
 
-        valeur_j = self.main_joueur.valeur_totale()
-        texte_info = f"Votre score: {valeur_j}"
-        
-        if fin_partie:
-            texte_info += f" | Score Croupier: {self.main_croupier.valeur_totale()}"
-            
-        self.info_label.config(text=texte_info)
+bouton_distribuer = tk.Button(cadre_mises, text="JOUER", command=distribuer, font=("Arial", 10, "bold"), bg="gold")
+bouton_distribuer.grid(row=0, column=3, padx=20)
 
-    def nouvelle_partie(self):
-        self.sabot = Sabot()
-        self.main_joueur = Main()
-        self.main_croupier = Main()
+cadre_actions = tk.Frame(fenetre, bg="#006400")
+cadre_actions.pack(pady=5)
 
-        # Distribution initiale
-        self.main_joueur.ajouter_carte(self.sabot.tirer())
-        self.main_croupier.ajouter_carte(self.sabot.tirer())
-        self.main_joueur.ajouter_carte(self.sabot.tirer())
-        self.main_croupier.ajouter_carte(self.sabot.tirer())
+bouton_tirer = tk.Button(cadre_actions, text="Carte", command=tirer, state="disabled", width=12)
+bouton_tirer.grid(row=0, column=0, padx=10)
 
-        self.btn_tirer.config(state=tk.NORMAL)
-        self.btn_rester.config(state=tk.NORMAL)
-        
-        self.maj_affichage()
-        
-        # Vérification Blackjack initial (As + Bûche)
-        if self.main_joueur.valeur_totale() == 21:
-            self.fin_de_partie("Blackjack ! Vous avez gagné.")
+bouton_rester = tk.Button(cadre_actions, text="Rester", command=rester, state="disabled", width=12)
+bouton_rester.grid(row=0, column=1, padx=10)
 
-    def joueur_tire(self):
-        self.main_joueur.ajouter_carte(self.sabot.tirer())
-        self.maj_affichage()
-        
-        if self.main_joueur.valeur_totale() > 21:
-            self.fin_de_partie("Vous avez brûlé (>21) ! La banque gagne.")
+# Nouveau bouton Abandonner (Surrender)
+bouton_abandonner = tk.Button(cadre_actions, text="Abandonner", command=abandonner, state="disabled", width=12)
+bouton_abandonner.grid(row=0, column=2, padx=10)
 
-    def joueur_reste(self):
-        # Service du croupier : la banque tire à 16, reste à 17
-        while self.main_croupier.valeur_totale() < 17:
-            self.main_croupier.ajouter_carte(self.sabot.tirer())
-            
-        score_j = self.main_joueur.valeur_totale()
-        score_c = self.main_croupier.valeur_totale()
-        
-        if score_c > 21:
-            msg = "Le croupier a brûlé ! Vous gagnez."
-        elif score_j > score_c:
-            msg = "Vous avez gagné !"
-        elif score_j < score_c:
-            msg = "La banque gagne."
-        else:
-            msg = "Égalité (Push)."
-            
-        self.fin_de_partie(msg)
-
-    def fin_de_partie(self, message):
-        self.maj_affichage(fin_partie=True)
-        self.btn_tirer.config(state=tk.DISABLED)
-        self.btn_rester.config(state=tk.DISABLED)
-        messagebox.showinfo("Résultat", message)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = BlackjackGame(root)
-    root.mainloop()
+mettre_a_jour_affichage()
+fenetre.mainloop()
