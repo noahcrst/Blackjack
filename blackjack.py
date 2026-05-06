@@ -25,7 +25,7 @@ paquet = []
 main_joueur = []
 main_croupier = []
 
-solde = 1000
+solde = 105
 mise_actuelle = 0
 partie_en_cours = False
 
