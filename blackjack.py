@@ -12,9 +12,9 @@ import random
 # - Oualid : Responsable Interface Graphique (Tapis de jeu, cartes, design)
 #
 # DÉCLARATION D'UTILISATION D'IA (LLM) :
-# Par souci de transparence, nous précisons que l'IA a été utilisée pour :
-# 1. Ajuster la logique du calcul de l'As (valeur 1 ou 11).
-# 2. Aider à la syntaxe des coordonnées du Canvas Tkinter pour le dessin.
+# Conformément aux consignes du projet, nous déclarons avoir été aidés par une IA pour :
+# 1. La partie graphisme : apprentissage et syntaxe des méthodes Canvas de Tkinter.
+# 2. Certaines parties logiques : conception de l'algorithme gérant la valeur de l'As.
 # ==========================================================
 
 # --- VARIABLES GLOBALES ---
@@ -59,7 +59,8 @@ def calculer_score(main):
         if carte[0] == 'A':
             nombre_as = nombre_as + 1
             
-    # Si le score dépasse 21, l'As passe de 11 à 1 point
+    # Aide IA : La structure de cette boucle while pour faire passer la valeur 
+    # de l'As de 11 à 1 en cas de dépassement de 21 nous a été suggérée par un LLM.
     while score > 21 and nombre_as > 0:
         score = score - 10
         nombre_as = nombre_as - 1
@@ -69,6 +70,8 @@ def calculer_score(main):
 
 def dessiner_carte(x, y, carte, cachee=False):
     """Dessine visuellement une carte sur le tapis de jeu."""
+    # Aide IA : L'utilisation exacte des coordonnées (create_rectangle, create_text) 
+    # pour centrer les éléments a été générée avec l'appui d'une IA.
     tapis.create_rectangle(x, y, x + 60, y + 90, fill="white", outline="black", width=2)
     
     if cachee == True:
@@ -222,6 +225,11 @@ def cloturer_partie():
 # Nous avons tenté d'implémenter la fonction "SPLIT" (Séparation).
 # La logique mathématique était prête, mais l'affichage sur le Canvas
 # ne permettait pas de gérer deux mains visuellement de façon propre.
+#
+# def tentative_split():
+#     global main_joueur, solde, mise_actuelle
+#     if len(main_joueur) == 2 and main_joueur[0][0] == main_joueur[1][0] and solde >= mise_actuelle:
+#         pass # Rendu visuel trop complexe à intégrer proprement
 # ==========================================================
 
 # --- INTERFACE ---
@@ -239,7 +247,6 @@ tapis.pack()
 cadre_mises = tk.Frame(fenetre, bg="#006400")
 cadre_mises.pack(pady=10)
 
-# Ajout du bouton +1 € et réorganisation de la grille
 tk.Button(cadre_mises, text="+ 1 €", command=lambda: miser(1), width=8).grid(row=0, column=0, padx=5)
 tk.Button(cadre_mises, text="+ 10 €", command=lambda: miser(10), width=8).grid(row=0, column=1, padx=5)
 tk.Button(cadre_mises, text="+ 50 €", command=lambda: miser(50), width=8).grid(row=0, column=2, padx=5)
